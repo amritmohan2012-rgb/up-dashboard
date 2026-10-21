@@ -350,7 +350,12 @@ function render(){
  dateH('b',st,render);
 }
 function ov(body,L,A){
- let h=kpis([['Ordered',cr(A.t),num(A.ords)+' orders'],['Delivered',cr(A.D),pct(A.D,A.t)+' of ordered'],['To be delivered',cr(A.P),'confirmed or ongoing'],['On hold',cr(A.H),''],['Rejected',cr(A.R),pct(A.R,A.t)+' of ordered'],['Active RWEs',num(A.act),'with a delivered order, of '+num(A.rw)+' ordering'],['Avg per active RWE',cr(A.act?A.D/A.act:0),'delivered value']]);
+ const PER=st.mon!=='All'||!!st.from||!!st.to,PY=x=>x.replace(/ (\d\d)$/,' 20$1'),perTxt=st.mon!=='All'?PY(MON[st.mon]||st.mon):(st.from&&st.to&&st.from===st.to?dmy(st.from)+' 2026':'the period'+(st.from||st.to?' ('+(st.from?dmy(st.from):'1 Apr')+' to '+(st.to?dmy(st.to):dmy(SLAST))+')':''));
+ let DW=0;const DWN=new Set(),EARL={};
+ if(PER)S.filter(l=>f(l,{mon:true,date:true})&&l[6]==='D'&&l[13]&&(st.mon==='All'||l[13].slice(0,7)===st.mon)&&(!st.from||l[13]>=st.from)&&(!st.to||l[13]<=st.to)).forEach(l=>{DW+=l[7];DWN.add(l[8]);const before=st.mon!=='All'?l[0]<st.mon:(st.from?l[9]<st.from:false);if(before)EARL[l[0]]=(EARL[l[0]]||0)+l[7]});
+ const EARLT=Object.values(EARL).reduce((a,b)=>a+b,0);
+ let h=kpis([['Ordered',cr(A.t),num(A.ords)+' orders'],['Delivered',cr(A.D),pct(A.D,A.t)+' of ordered'],...(PER?[['Delivered in '+perTxt+', by delivery date',cr(DW),DWN.size+' orders, any order date']]:[]),['To be delivered',cr(A.P),'confirmed or ongoing'],['On hold',cr(A.H),''],['Rejected',cr(A.R),pct(A.R,A.t)+' of ordered'],['Active RWEs',num(A.act),'with a delivered order, of '+num(A.rw)+' ordering'],['Avg per active RWE',cr(A.act?A.D/A.act:0),'delivered value']]);
+ h+=PER?card('Delivered, two ways','Ordered, to be delivered, on hold and rejected above count orders placed in '+perTxt+'. Delivery can happen later, so delivered is shown both ways.',kpis([['1. Delivered in '+perTxt+', on orders placed in '+perTxt,cr(A.D),num(A.dord)+' orders · '+pct(A.D,A.t)+' of ordered'],['2. Delivered in '+perTxt+', on all orders received',cr(DW),DWN.size+' orders'+(EARLT>0?' · includes '+cr(EARLT)+' from orders placed before the period ('+Object.keys(EARL).sort().map(m=>PY(MON[m]||m)+' '+cr(EARL[m])).join(', ')+')':'')]])):card('Delivered, two ways','Pick a month or a date range above to see delivered in that period on the period’s own orders, and on all orders received (including orders placed earlier).','')
  h+=octBox();
  const LB=S.filter(l=>f(l,{blk:true}));
  const br=WHS.map(b=>Object.assign({b},agg(LB.filter(l=>l[1]===b)))).filter(r=>r.t>0);
